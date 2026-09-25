@@ -4,11 +4,12 @@ Update this file after every meaningful implementation change.
 
 ## Current Phase
 
-- Core simulator + realistic CPU/state visualisation — largely complete; polish and course deliverables remain
+- Core simulator + realistic CPU/state visualisation — complete for course demo
+- Context docs maintained; course report/PPT still external
 
 ## Current Goal
 
-- Keep context docs accurate; support local run fixes and any remaining visualisation/report needs
+- Keep types and docs in sync; support local TypeScript/build issues; optional next features on request
 
 ## Completed
 
@@ -23,6 +24,7 @@ Update this file after every meaningful implementation change.
 - CpuSchedulerView: Ready / Running / Blocked / Terminated + play/scrub + CPU chip
 - `next.config.ts` allowedDevOrigins + turbopack.root for network/dev warnings
 - Context documentation set under `context/`
+- **Type fix (2026-09-25):** `SimulationResult.algorithm` typed as `Algorithm` (`"FCFS" | "SRTF" | "RR"`) — resolves TS2322 on `MetricsCard` / `algorithm={r.algorithm}`
 
 ## In Progress
 
@@ -33,7 +35,7 @@ Update this file after every meaningful implementation change.
 - Optional: true I/O Blocked state (separate from “not arrived”) if course requires it
 - Optional: Priority scheduling algorithm (field already on Process)
 - Course deliverables outside the app: IMRAD report (PDF), presentation (PPTX)
-- Ensure user’s local Windows project has all latest component files
+- Ensure user’s local Windows project has latest `types.ts` and components
 
 ## Open Questions
 
@@ -47,6 +49,7 @@ Update this file after every meaningful implementation change.
 - Timeline derived from Gantt after the fact — single source of truth for execution order
 - Same workload for all three algorithms — fair comparison
 - Tailwind-only UI without shadcn — fewer install dependencies for students
+- **`Algorithm` union type** is the single source of truth for algorithm names; `SimulationResult.algorithm` must be `Algorithm`, not `string`
 
 ## Session Notes
 
@@ -55,3 +58,4 @@ Update this file after every meaningful implementation change.
 - Access via LAN IP needs `allowedDevOrigins` entry for that IP
 - Prefer `http://localhost:3000` for dev to avoid cross-origin warnings
 - Meaningful files: `src/lib/algorithms.ts`, `src/lib/types.ts`, `src/components/CpuSchedulerView.tsx`, `src/app/page.tsx`
+- If TS errors persist after type fix: VS Code → “TypeScript: Restart TS Server”

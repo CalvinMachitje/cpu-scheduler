@@ -9,6 +9,8 @@
 ## TypeScript
 
 - Strict typing for `Process`, `GanttEntry`, `Metrics`, `SimulationResult`, `StateSnapshot`
+- Use `Algorithm = "FCFS" | "SRTF" | "RR"` for algorithm names — never widen to plain `string` on `SimulationResult.algorithm`
+- Component props that display the algorithm name should accept `Algorithm` (or `Algorithm | string` only if needed for display)
 - Avoid `any` in new code; narrow chart data types when touching scaling charts
 - Export shared types only from `src/lib/types.ts`
 

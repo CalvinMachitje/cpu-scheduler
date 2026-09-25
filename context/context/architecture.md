@@ -41,3 +41,4 @@
 3. State timeline snapshots are derived from Gantt + process completion times; they must stay consistent with the Gantt chart.
 4. Client components (`"use client"`) are used only where interactivity is required (main page, charts, playback).
 5. Metrics formulae remain standard OS definitions (waiting = TAT − burst, etc.).
+6. Algorithm identity is the union type `Algorithm` (`"FCFS" | "SRTF" | "RR"`); results and UI props must not treat it as an unconstrained `string`.
