@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CPU Scheduling Simulator | CMPG324",
+  title: "CPU Scheduling Simulator",
   description: "Simulate and compare FCFS, SRTF and Round Robin CPU scheduling algorithms",
 };
 

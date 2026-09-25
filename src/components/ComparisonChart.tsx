@@ -1,397 +1,140 @@
-// root/cpu-scheduler/src/components/ComparisonChart.tsx
 "use client";
 
-import {
-  ComparisonMetric,
-  ScalingDataPoint,
-  SimulationResult,
-} from "@/lib/types";
+import { SimulationResult } from "@/lib/types";
 
 interface ComparisonChartProps {
   results: SimulationResult[];
-  metric: ComparisonMetric;
+  metric: "avgWaitingTime" | "avgTurnaroundTime" | "avgResponseTime" | "cpuUtilization" | "throughput";
   title: string;
 }
 
-const COLORS: Record<
-  string,
-  string
-> = {
+const COLORS: Record<string, string> = {
   FCFS: "#3b82f6",
   SRTF: "#22c55e",
   RR: "#f59e0b",
 };
 
-const METRIC_DIRECTION: Record<
-  ComparisonMetric,
-  "lower" | "higher"
-> = {
-  avgWaitingTime: "lower",
-  avgTurnaroundTime: "lower",
-  avgResponseTime: "lower",
-  cpuUtilization: "higher",
-  throughput: "higher",
-};
-
-function formatMetric(
-  metric: ComparisonMetric,
-  value: number
-) {
-  if (metric === "cpuUtilization") {
-    return `${value.toFixed(1)}%`;
-  }
-
-  if (metric === "throughput") {
-    return value.toFixed(4);
-  }
-
-  return value.toFixed(2);
-}
-
-export default function ComparisonChart({
-  results,
-  metric,
-  title,
-}: ComparisonChartProps) {
-  if (!results.length) {
-    return null;
-  }
-
-  const data = results.map((result) => ({
-    name: result.algorithm,
-    value: result.metrics[metric],
+export default function ComparisonChart({ results, metric, title }: ComparisonChartProps) {
+  const data = results.map((r) => ({
+    name: r.algorithm,
+    value: Number(r.metrics[metric].toFixed(4)),
   }));
 
-  const direction =
-    METRIC_DIRECTION[metric];
-
-  const bestValue =
-    direction === "lower"
-      ? Math.min(
-          ...data.map((item) => item.value)
-        )
-      : Math.max(
-          ...data.map((item) => item.value)
-        );
-
-  const maxVal = Math.max(
-    ...data.map((item) => item.value),
-    0.001
-  );
+  const maxVal = Math.max(...data.map((d) => d.value), 0.001);
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
-            {title}
-          </h3>
-
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-            {direction === "lower"
-              ? "Lower values indicate better performance."
-              : "Higher values indicate better performance."}
-          </p>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        {data.map((item) => {
-          const isBest =
-            item.value === bestValue;
-
-          const percentage =
-            maxVal > 0
-              ? (item.value / maxVal) * 100
-              : 0;
-
-          return (
-            <div
-              key={item.name}
-              className="space-y-1.5"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="h-2.5 w-2.5 rounded-full"
-                    style={{
-                      backgroundColor:
-                        COLORS[item.name],
-                    }}
-                  />
-
-                  <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">
-                    {item.name}
-                  </span>
-
-                  {isBest && (
-                    <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                      Best
-                    </span>
-                  )}
-                </div>
-
-                <span className="font-mono text-xs font-bold text-zinc-900 dark:text-white">
-                  {formatMetric(
-                    metric,
-                    item.value
-                  )}
-                </span>
-              </div>
-
-              <div className="h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${percentage}%`,
-                    backgroundColor:
-                      COLORS[item.name] ??
-                      "#71717a",
-                  }}
-                />
-              </div>
+    <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+      <h3 className="mb-4 text-sm font-semibold text-zinc-800 dark:text-zinc-100">{title}</h3>
+      <div className="space-y-3">
+        {data.map((d) => (
+          <div key={d.name} className="flex items-center gap-3">
+            <span className="w-12 text-xs font-medium text-zinc-600 dark:text-zinc-300">
+              {d.name}
+            </span>
+            <div className="flex-1 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${(d.value / maxVal) * 100}%`,
+                  backgroundColor: COLORS[d.name] || "#888",
+                }}
+              />
             </div>
-          );
-        })}
+            <span className="w-16 text-right text-xs font-semibold text-zinc-800 dark:text-zinc-100">
+              {d.value}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
+interface ScalingDataPoint {
+  processCount: number;
+  FCFS: number;
+  SRTF: number;
+  RR: number;
+}
+
 interface ScalingChartProps {
   data: ScalingDataPoint[];
   metricLabel: string;
+  yLabel?: string;
 }
 
-export function ScalingChart({
-  data,
-  metricLabel,
-}: ScalingChartProps) {
-  if (!data?.length) {
-    return null;
-  }
+export function ScalingChart({ data, metricLabel }: ScalingChartProps) {
+  if (!data || data.length === 0) return null;
 
-  const width = 760;
-  const height = 300;
+  const allValues = data.flatMap((d) => [d.FCFS, d.SRTF, d.RR]);
+  const maxVal = Math.max(...allValues, 0.001);
+  const minVal = Math.min(...allValues, 0);
 
-  const paddingLeft = 52;
-  const paddingRight = 20;
-  const paddingTop = 35;
-  const paddingBottom = 45;
+  const height = 180;
+  const width = 400;
+  const padding = 30;
+  const chartW = width - padding * 2;
+  const chartH = height - padding * 2;
 
-  const chartWidth =
-    width -
-    paddingLeft -
-    paddingRight;
+  const xScale = (i: number) => padding + (i / (data.length - 1 || 1)) * chartW;
+  const yScale = (v: number) =>
+    padding + chartH - ((v - minVal) / (maxVal - minVal || 1)) * chartH;
 
-  const chartHeight =
-    height -
-    paddingTop -
-    paddingBottom;
-
-  const values = data.flatMap(
-    (point) => [
-      point.FCFS,
-      point.SRTF,
-      point.RR,
-    ]
-  );
-
-  const maxValue = Math.max(
-    ...values,
-    0.001
-  );
-
-  const xScale = (index: number) =>
-    paddingLeft +
-    (index /
-      Math.max(data.length - 1, 1)) *
-      chartWidth;
-
-  const yScale = (value: number) =>
-    paddingTop +
-    chartHeight -
-    (value / maxValue) *
-      chartHeight;
-
-  const makePath = (
-    key: "FCFS" | "SRTF" | "RR"
-  ) =>
+  const makePath = (key: "FCFS" | "SRTF" | "RR") =>
     data
-      .map(
-        (point, index) =>
-          `${index === 0 ? "M" : "L"} ${xScale(
-            index
-          )} ${yScale(point[key])}`
-      )
+      .map((d, i) => `${i === 0 ? "M" : "L"} ${xScale(i)} ${yScale(d[key])}`)
       .join(" ");
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="mb-4">
-        <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
-          {metricLabel} Scaling
-        </h3>
-
-        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-          Performance as workload size increases.
-        </p>
-      </div>
-
+    <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+      <h3 className="mb-3 text-sm font-semibold text-zinc-800 dark:text-zinc-100">
+        {metricLabel} vs Number of Processes
+      </h3>
       <div className="overflow-x-auto">
-        <svg
-          viewBox={`0 0 ${width} ${height}`}
-          className="min-w-[620px] w-full"
-          role="img"
-          aria-label={`${metricLabel} scaling chart`}
-        >
-          {[0, 0.25, 0.5, 0.75, 1].map(
-            (step) => {
-              const y =
-                paddingTop +
-                step * chartHeight;
-
-              const value =
-                maxValue *
-                (1 - step);
-
-              return (
-                <g key={step}>
-                  <line
-                    x1={paddingLeft}
-                    y1={y}
-                    x2={
-                      width -
-                      paddingRight
-                    }
-                    y2={y}
-                    stroke="currentColor"
-                    className="text-zinc-200 dark:text-zinc-800"
-                    strokeWidth="1"
-                  />
-
-                  <text
-                    x={paddingLeft - 8}
-                    y={y + 4}
-                    textAnchor="end"
-                    fontSize="10"
-                    className="fill-zinc-400"
-                  >
-                    {value.toFixed(
-                      metricLabel ===
-                        "CPU Utilization"
-                        ? 0
-                        : 1
-                    )}
-                  </text>
-                </g>
-              );
-            }
-          )}
-
-          <path
-            d={makePath("FCFS")}
-            fill="none"
-            stroke={COLORS.FCFS}
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-
-          <path
-            d={makePath("SRTF")}
-            fill="none"
-            stroke={COLORS.SRTF}
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-
-          <path
-            d={makePath("RR")}
-            fill="none"
-            stroke={COLORS.RR}
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-
-          {(
-            ["FCFS", "SRTF", "RR"] as const
-          ).map((algorithm) =>
-            data.map((point, index) => (
-              <circle
-                key={`${algorithm}-${index}`}
-                cx={xScale(index)}
-                cy={yScale(
-                  point[algorithm]
-                )}
-                r="4"
-                fill={COLORS[algorithm]}
-              />
-            ))
-          )}
-
-          {data.map(
-            (point, index) => (
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full max-w-md">
+          {[0, 0.25, 0.5, 0.75, 1].map((t) => (
+            <line
+              key={t}
+              x1={padding}
+              y1={padding + t * chartH}
+              x2={width - padding}
+              y2={padding + t * chartH}
+              stroke="#e4e4e7"
+              strokeWidth={1}
+            />
+          ))}
+          <path d={makePath("FCFS")} fill="none" stroke="#3b82f6" strokeWidth={2} />
+          <path d={makePath("SRTF")} fill="none" stroke="#22c55e" strokeWidth={2} />
+          <path d={makePath("RR")} fill="none" stroke="#f59e0b" strokeWidth={2} />
+          {data.map((d, i) => (
+            <g key={i}>
+              <circle cx={xScale(i)} cy={yScale(d.FCFS)} r={3} fill="#3b82f6" />
+              <circle cx={xScale(i)} cy={yScale(d.SRTF)} r={3} fill="#22c55e" />
+              <circle cx={xScale(i)} cy={yScale(d.RR)} r={3} fill="#f59e0b" />
               <text
-                key={point.processCount}
-                x={xScale(index)}
-                y={height - 15}
+                x={xScale(i)}
+                y={height - 8}
                 textAnchor="middle"
-                fontSize="10"
-                className="fill-zinc-500"
+                fontSize={10}
+                fill="#71717a"
               >
-                {point.processCount}
+                {d.processCount}
               </text>
-            )
-          )}
-
-          <text
-            x={width / 2}
-            y={height - 2}
-            textAnchor="middle"
-            fontSize="10"
-            className="fill-zinc-400"
-          >
-            Number of Processes
-          </text>
-
-          <g
-            transform={`translate(${paddingLeft}, 10)`}
-          >
-            {(
-              [
-                ["FCFS", COLORS.FCFS],
-                ["SRTF", COLORS.SRTF],
-                ["RR", COLORS.RR],
-              ] as const
-            ).map(
-              ([algorithm, color], index) => (
-                <g
-                  key={algorithm}
-                  transform={`translate(${
-                    index * 75
-                  }, 0)`}
-                >
-                  <circle
-                    cx="5"
-                    cy="5"
-                    r="5"
-                    fill={color}
-                  />
-
-                  <text
-                    x="14"
-                    y="9"
-                    fontSize="10"
-                    className="fill-zinc-500"
-                  >
-                    {algorithm}
-                  </text>
-                </g>
-              )
-            )}
+            </g>
+          ))}
+          <g transform={`translate(${padding}, 12)`}>
+            <rect x={0} y={0} width={10} height={10} fill="#3b82f6" />
+            <text x={14} y={9} fontSize={10} fill="#3f3f46">
+              FCFS
+            </text>
+            <rect x={50} y={0} width={10} height={10} fill="#22c55e" />
+            <text x={64} y={9} fontSize={10} fill="#3f3f46">
+              SRTF
+            </text>
+            <rect x={100} y={0} width={10} height={10} fill="#f59e0b" />
+            <text x={114} y={9} fontSize={10} fill="#3f3f46">
+              RR
+            </text>
           </g>
         </svg>
       </div>
