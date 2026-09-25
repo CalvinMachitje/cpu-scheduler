@@ -198,7 +198,6 @@ export default function Home() {
               disabled={isRunning}
               className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-700 disabled:opacity-60"
             >
-              📊
               Scaling Study (10→50)
             </button>
           </div>
