@@ -1,8 +1,10 @@
 # CPU Scheduling Simulator (CMPG324)
 
+**Assignment authority:** See `context/assignment-brief.md`. This product exists to satisfy the CMPG324 CPU Scheduling Simulator project (Dr Lanka Sejaphala, NWU). Scope, algorithms, metrics, and deliverables must match that brief. Submission: Report PDF + Presentation PPTX + Simulator by **19 October 2026**.
+
 ## Overview
 
-A web-based CPU scheduling simulator built for the North-West University Operating Systems module (CMPG324). It lets students create random multi-process workloads, run three classic scheduling algorithms (FCFS, SRTF, Round Robin), and compare performance using standard OS metrics. The UI visualises how the CPU schedules processes over time, including Ready / Running / Blocked (not-yet-arrived) / Terminated states, Gantt charts, and a playable timeline.
+A web-based CPU scheduling simulator built for the North-West University Operating Systems module (CMPG324). It targets an **audio-and-video multi-process** context: create random workloads, run **FCFS, SRTF, and Round Robin**, visualise execution, and compare performance using the brief’s metrics (waiting time, response time, CPU utilisation, throughput, average turnaround time). Scaling from **10 to 50 processes** supports the investigative questions. Extra UI (state board, traces) supports understanding and the report’s methodology/results, without replacing required algorithms.
 
 ## Goals
 
