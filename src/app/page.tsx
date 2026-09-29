@@ -1,3 +1,14 @@
+/**
+ * Main simulator page (CMPG324 audio-and-video multi-process scheduling).
+ *
+ * Flow for collaborators:
+ * 1) generateProcesses → workload table
+ * 2) runAlgorithm(FCFS|SRTF|RR) via Simulate All
+ * 3) Tabs: Gantt (CpuSchedulerView + Gantt + Trace), Compare metrics, Scaling Study 10–50
+ *
+ * Keep scheduling logic in src/lib; this file only holds UI state and wiring.
+ */
+
 "use client";
 
 import { useState, useMemo, useCallback } from "react";

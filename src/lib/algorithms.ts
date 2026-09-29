@@ -1,7 +1,13 @@
 /**
- * CPU scheduling algorithms for an audio-and-video multi-process system (CMPG324).
- * Compares FCFS, SRTF and Round Robin on the same workload: concurrent A/V-style
- * tasks competing for a single CPU (decode, encode, stream, mix, etc.).
+ * Scheduling core for audio-and-video multi-process system.
+ *
+ * Important exports for collaborators:
+ * - generateProcesses  → build a random workload (assignment: 10–50 processes)
+ * - runAlgorithm       → run FCFS | SRTF | RR and attach state timeline
+ * - runFCFS / runSRTF / runRR → individual schedulers (prefer runAlgorithm from UI)
+ * - buildStateTimeline → Ready/Running/Blocked/Terminated per time unit for the CPU view
+ *
+ * Do not reimplement these rules inside React components.
  */
 import {
   Process,
@@ -12,6 +18,7 @@ import {
   StateSnapshot,
 } from "./types";
 
+/** Clone workload and reset runtime fields so each algorithm starts clean. */
 function deepCopyProcesses(processes: Process[]): Process[] {
   return processes.map((p) => ({
     ...p,
@@ -25,6 +32,11 @@ function deepCopyProcesses(processes: Process[]): Process[] {
   }));
 }
 
+/**
+ * Metrics:
+ * waiting = TAT − burst, TAT = completion − arrival, response = first run − arrival,
+ * CPU util = total burst / total time, throughput = n / total time.
+ */
 function calculateMetrics(processes: Process[], totalTime: number): Metrics {
   const n = processes.length;
   if (n === 0 || totalTime === 0) {
@@ -53,6 +65,7 @@ function calculateMetrics(processes: Process[], totalTime: number): Metrics {
   };
 }
 
+/** Non-preemptive: run processes in arrival order to completion. */
 export function runFCFS(original: Process[]): SimulationResult {
   const processes = deepCopyProcesses(original);
   processes.sort((a, b) => a.arrivalTime - b.arrivalTime || a.id - b.id);
@@ -78,15 +91,18 @@ export function runFCFS(original: Process[]): SimulationResult {
     currentTime = p.completionTime;
   }
 
-  const totalTime = currentTime;
   return {
     algorithm: "FCFS",
     gantt,
     processes,
-    metrics: calculateMetrics(processes, totalTime),
+    metrics: calculateMetrics(processes, currentTime),
   };
 }
 
+/**
+ * Preemptive shortest-remaining-time: each time unit, run the ready process
+ * with the least remaining burst (ties broken by arrival, then id).
+ */
 export function runSRTF(original: Process[]): SimulationResult {
   const processes = deepCopyProcesses(original);
   const n = processes.length;
@@ -168,6 +184,10 @@ export function runSRTF(original: Process[]): SimulationResult {
   };
 }
 
+/**
+ * Preemptive Round Robin: each ready process runs for at most timeQuantum,
+ * then goes to the back of the ready queue if it still has remaining time.
+ */
 export function runRR(original: Process[], timeQuantum: number): SimulationResult {
   const processes = deepCopyProcesses(original);
   const n = processes.length;
@@ -223,7 +243,6 @@ export function runRR(original: Process[], timeQuantum: number): SimulationResul
 
     p.remainingTime -= execTime;
     currentTime += execTime;
-
     addArrived();
 
     if (p.remainingTime > 0) {
@@ -255,9 +274,8 @@ export function runRR(original: Process[], timeQuantum: number): SimulationResul
 }
 
 /**
- * Rebuild process states (Ready / Running / Blocked / Terminated)
- * at every time unit from the Gantt chart + process table.
- * This powers the realistic CPU / queue visualization.
+ * Builds one StateSnapshot per time unit from Gantt + completion times.
+ * Required input for CpuSchedulerView play/scrub visualisation.
  */
 export function buildStateTimeline(
   processes: Process[],
@@ -268,14 +286,7 @@ export function buildStateTimeline(
   const maxT = Math.max(totalTime, 0);
 
   for (let t = 0; t <= maxT; t++) {
-    // Who is on the CPU at time t? (half-open interval [start, end))
     const runningEntry = gantt.find((g) => t >= g.start && t < g.end);
-    // At exact completion of last segment, still show last running if t == end of last and process not done display
-    const running =
-      runningEntry?.processId ??
-      (t === maxT && gantt.length
-        ? null
-        : null);
 
     const ready: number[] = [];
     const blocked: number[] = [];
@@ -288,17 +299,14 @@ export function buildStateTimeline(
       if (done) {
         terminated.push(p.id);
       } else if (!arrived) {
-        // Not yet in the system → Blocked / waiting to enter
         blocked.push(p.id);
-      } else if (running === p.id) {
-        // on CPU — skip ready/blocked
+      } else if (runningEntry?.processId === p.id) {
+        // on CPU
       } else {
-        // Arrived, not finished, not running → Ready queue
         ready.push(p.id);
       }
     }
 
-    // Keep ready queue roughly in arrival / id order for stable display
     ready.sort((a, b) => {
       const pa = processes.find((x) => x.id === a)!;
       const pb = processes.find((x) => x.id === b)!;
@@ -320,14 +328,18 @@ export function buildStateTimeline(
   return snapshots;
 }
 
+/** Attaches timeline to a simulation result before returning to the UI. */
 function withTimeline(result: SimulationResult): SimulationResult {
-  const totalTime = result.metrics.totalTime;
   return {
     ...result,
-    timeline: buildStateTimeline(result.processes, result.gantt, totalTime),
+    timeline: buildStateTimeline(result.processes, result.gantt, result.metrics.totalTime),
   };
 }
 
+/**
+ * Main entry point from the UI: run one algorithm and return Gantt, metrics, timeline.
+ * Always prefer this over calling runFCFS/runSRTF/runRR directly from page.tsx.
+ */
 export function runAlgorithm(
   algorithm: Algorithm,
   processes: Process[],
@@ -351,9 +363,8 @@ export function runAlgorithm(
 }
 
 /**
- * Build a random A/V-style workload: staggered arrivals (incremental) and
- * variable CPU bursts, as required by the CMPG324 brief (10–50 processes).
- * Priority is generated for completeness; FCFS/SRTF/RR do not use it.
+ * Workload generator: random incremental arrivals, random burst 1–15,
+ * random priority 1–10.
  */
 export function generateProcesses(count: number, seed?: number): Process[] {
   let s = seed ?? Date.now();
@@ -366,9 +377,7 @@ export function generateProcesses(count: number, seed?: number): Process[] {
   let arrival = 0;
 
   for (let i = 1; i <= count; i++) {
-    // Staggered arrivals of concurrent A/V tasks (random incremental)
     arrival += Math.floor(random() * 6);
-    // Variable CPU demand (e.g. decode vs mix vs stream segments)
     const burst = Math.floor(random() * 15) + 1;
     const priority = Math.floor(random() * 10) + 1;
 
