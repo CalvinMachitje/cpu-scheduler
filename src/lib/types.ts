@@ -1,3 +1,7 @@
+/**
+ * Domain types for the CMPG324 audio-and-video CPU scheduling simulator.
+ * Each process represents a concurrent A/V task competing for the CPU.
+ */
 export interface Process {
   id: number;
   arrivalTime: number;
@@ -46,6 +50,8 @@ export interface StateSnapshot {
   cpuIdle: boolean;
 }
 
+export type Algorithm = "FCFS" | "SRTF" | "RR";
+
 export interface SimulationResult {
   algorithm: Algorithm;
   gantt: GanttEntry[];
@@ -54,5 +60,3 @@ export interface SimulationResult {
   /** One snapshot per time unit for realistic state playback */
   timeline?: StateSnapshot[];
 }
-
-export type Algorithm = "FCFS" | "SRTF" | "RR";

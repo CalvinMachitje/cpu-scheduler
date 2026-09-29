@@ -1,3 +1,8 @@
+/**
+ * CPU scheduling algorithms for an audio-and-video multi-process system (CMPG324).
+ * Compares FCFS, SRTF and Round Robin on the same workload: concurrent A/V-style
+ * tasks competing for a single CPU (decode, encode, stream, mix, etc.).
+ */
 import {
   Process,
   GanttEntry,
@@ -345,6 +350,11 @@ export function runAlgorithm(
   return withTimeline(result);
 }
 
+/**
+ * Build a random A/V-style workload: staggered arrivals (incremental) and
+ * variable CPU bursts, as required by the CMPG324 brief (10–50 processes).
+ * Priority is generated for completeness; FCFS/SRTF/RR do not use it.
+ */
 export function generateProcesses(count: number, seed?: number): Process[] {
   let s = seed ?? Date.now();
   const random = () => {
@@ -356,7 +366,9 @@ export function generateProcesses(count: number, seed?: number): Process[] {
   let arrival = 0;
 
   for (let i = 1; i <= count; i++) {
+    // Staggered arrivals of concurrent A/V tasks (random incremental)
     arrival += Math.floor(random() * 6);
+    // Variable CPU demand (e.g. decode vs mix vs stream segments)
     const burst = Math.floor(random() * 15) + 1;
     const priority = Math.floor(random() * 10) + 1;
 
