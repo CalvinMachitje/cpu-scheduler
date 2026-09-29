@@ -1,5 +1,5 @@
 /**
- * Root layout: fonts, global CSS, page metadata for the CMPG324 simulator.
+ * Root layout: fonts, global CSS, page metadata for the simulator.
  */
 
 import type { Metadata } from "next";
@@ -17,9 +17,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CPU Scheduling Simulator | CMPG324 | Audio-Video System",
+  title: "CPU Scheduling Simulator | Audio-Video System",
   description:
-    "Simulate and compare FCFS, SRTF and Round Robin for an audio-and-video system with multiple processes. CMPG324 Operating Systems, North-West University.",
+    "Simulate and compare FCFS, SRTF and Round Robin for an audio-and-video system with multiple processes. Operating Systems.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

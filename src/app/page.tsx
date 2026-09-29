@@ -1,5 +1,5 @@
 /**
- * Main simulator page (CMPG324 audio-and-video multi-process scheduling).
+ * Main simulator page audio-and-video multi-process scheduling.
  *
  * Flow for collaborators:
  * 1) generateProcesses → workload table
@@ -143,30 +143,17 @@ export default function Home() {
                 CPU Scheduling Simulator
               </h1>
               <p className="text-xs text-zinc-500">
-                Audio-and-video multi-process system · CMPG324 · FCFS · SRTF · Round Robin
+                Audio-and-video multi-process system · FCFS · SRTF · Round Robin
               </p>
             </div>
           </div>
           <div className="hidden text-right text-xs text-zinc-500 sm:block">
-            North-West University · Operating Systems
+            · Operating Systems
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        <section className="mb-4 rounded-xl border border-blue-100 bg-blue-50/80 px-4 py-3 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-100">
-          <p className="font-medium">
-            Objective: simulate and compare three CPU scheduling algorithms for an
-            audio-and-video system with multiple competing processes (decode, encode,
-            stream, mix).
-          </p>
-          <p className="mt-1 text-xs text-blue-800/80 dark:text-blue-200/80">
-            Workloads model concurrent A/V tasks. Compare FCFS, SRTF and Round Robin on
-            waiting time, turnaround, response time, throughput and CPU utilisation as
-            process count grows from 10 to 50.
-          </p>
-        </section>
-
         <section className="mb-6 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
           <div className="flex flex-wrap items-end gap-4">
             <div>
@@ -356,7 +343,7 @@ export default function Home() {
 
         <footer className="mt-12 border-t border-zinc-200 pt-6 text-center text-xs text-zinc-500 dark:border-zinc-800">
           <p>
-            CMPG324 · Audio-and-video multi-process CPU scheduling · Algorithms: FCFS
+            · Audio-and-video multi-process CPU scheduling · Algorithms: FCFS
             (non-preemptive) · SRTF (preemptive) · Round Robin (time quantum)
           </p>
           <p className="mt-1">
