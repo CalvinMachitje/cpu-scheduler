@@ -7,12 +7,12 @@ Update this file after every meaningful implementation change.
 ## Current Phase
 
 - Simulator (required deliverable #3) — **implemented and usable**
-- Report PDF (deliverable #1) — **not started**
-- Presentation PPTX (deliverable #2) — **not started**
+- Report PDF / DOCX (deliverable #1) — **done** (`artifacts/CMPG324_CPU_Scheduling_Report.pdf` / `.docx`)
+- Presentation PPTX (deliverable #2) — **done** (`artifacts/CMPG324_CPU_Scheduling_Presentation.pptx`)
 
 ## Current Goal
 
-- Keep the simulator aligned with the assignment; produce IMRAD report and PPTX when requested
+- Polish simulator UX; keep docs in sync with code
 
 ## Assignment compliance checklist
 
@@ -24,30 +24,33 @@ Update this file after every meaningful implementation change.
 | Waiting, response, CPU util, throughput, avg turnaround | Done |
 | Visualise process execution | Done (Gantt, lanes, CPU state board, trace) |
 | Compare algorithms as N grows (investigative Qs) | Done (Scaling Study charts) |
-| Report PDF (IMRAD) | **Todo** |
-| Presentation PPTX | **Todo** |
+| Report PDF (IMRAD) | Done (+ DOCX) |
+| Presentation PPTX | Done |
 | Simulator submission | App ready; package/export as needed |
 
 ## Completed (simulator)
 
 - Next.js + TypeScript + Tailwind app
 - Process generator; FCFS / SRTF / RR; metrics
-- Simulate All + Scaling Study (10–50)
+- **Run one algorithm at a time (FCFS | SRTF | RR) or Simulate All** — metrics calculated for each run
+- Results stored in `resultMap` (merge individual runs; replace on Simulate All)
+- Scaling Study (10–50)
 - Gantt, ExecutionTrace, CpuSchedulerView (Ready/Running/Blocked/Terminated)
 - Metrics + comparison + scaling charts
+- **OS Group Project logo** (`public/os-group-logo.jpg`) in header + favicon
 - Context docs + assignment-brief.md
 - Type fix: `SimulationResult.algorithm` is `Algorithm`
+- Report PDF/DOCX and presentation PPTX in `artifacts/`
 
 ## In Progress
 
-- None (awaiting report / PPT / packaging instructions)
+- None actively
 
 ## Next Up (submission path)
 
-1. Run Scaling Study; capture graphs for investigative questions → feed **Results** section  
-2. Write IMRAD report (PDF) per assignment structure  
-3. Build presentation (PPTX) summarising methods, results, recommendation  
-4. Package simulator (repo / zip / run instructions) for submission  
+1. Add student names / numbers to report cover and PPT title if required  
+2. Package simulator (repo / zip / run instructions) for submission  
+3. Optional screenshots of logo + per-algorithm runs for the report appendix  
 
 ## Open Questions
 
@@ -58,11 +61,15 @@ Update this file after every meaningful implementation change.
 ## Architecture Decisions
 
 - Client-only simulator matching brief (workloads, run, visualise, compare)  
-- Same workload for all three algorithms for fair comparison  
+- Same workload for all three algorithms when comparing (Simulate All or sequential individual runs on unchanged workload)  
+- `resultMap: Partial<Record<Algorithm, SimulationResult>>` allows partial completion  
 - Scaling Study exists specifically to answer “as number of processes increases…”  
+- Branding: OS Group Project circular logo as primary visual identity  
 
 ## Session Notes
 
 - Local path: `E:\my projects\scheduling simulator\cpu-scheduler`  
 - Prefer `http://localhost:3000`  
+- Logo path: `public/os-group-logo.jpg`  
 - Due date: **19 October 2026** — Report PDF, PPTX, Simulator  
+- Key UI file for run controls: `src/app/page.tsx` (`runOne`, `runAll`, `resultMap`)  
