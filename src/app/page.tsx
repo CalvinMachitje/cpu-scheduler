@@ -254,7 +254,7 @@ export default function Home() {
           {/* Per-algorithm + run all */}
           <div className="mt-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">
             <p className="mb-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              Run algorithms (metrics calculated automatically)
+              Run algorithms
             </p>
             <div className="flex flex-wrap items-center gap-2">
               {ALGORITHMS.map((algo) => {
