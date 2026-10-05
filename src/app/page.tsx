@@ -1,10 +1,10 @@
 /**
- * Main simulator page audio-and-video multi-process scheduling.
+ * Main simulator page (CMPG324 audio-and-video multi-process scheduling).
  *
  * Flow for collaborators:
  * 1) generateProcesses → workload table
- * 2) runAlgorithm(FCFS|SRTF|RR) via Simulate All
- * 3) Tabs: Gantt (CpuSchedulerView + Gantt + Trace), Compare metrics, Scaling Study 10–50
+ * 2) Run one algorithm (FCFS | SRTF | RR) or Simulate All
+ * 3) Metrics are calculated for whatever was run; tabs show Gantt / Compare / Scaling
  *
  * Keep scheduling logic in src/lib; this file only holds UI state and wiring.
  */
@@ -16,7 +16,7 @@ import {
   generateProcesses,
   runAlgorithm,
 } from "@/lib/algorithms";
-import { Process, SimulationResult } from "@/lib/types";
+import { Process, SimulationResult, Algorithm } from "@/lib/types";
 import ProcessTable from "@/components/ProcessTable";
 import GanttChart from "@/components/GanttChart";
 import ExecutionTrace from "@/components/ExecutionTrace";
@@ -24,8 +24,14 @@ import CpuSchedulerView from "@/components/CpuSchedulerView";
 import MetricsCard from "@/components/MetricsCard";
 import ComparisonChart, { ScalingChart } from "@/components/ComparisonChart";
 
-
 const PROCESS_COUNTS = [10, 20, 30, 40, 50];
+const ALGORITHMS: Algorithm[] = ["FCFS", "SRTF", "RR"];
+
+const ALGO_LABELS: Record<Algorithm, string> = {
+  FCFS: "FCFS",
+  SRTF: "SRTF",
+  RR: "Round Robin",
+};
 
 export default function Home() {
   const [processCount, setProcessCount] = useState(10);
@@ -34,7 +40,8 @@ export default function Home() {
   const [processes, setProcesses] = useState<Process[]>(() =>
     generateProcesses(10, 42)
   );
-  const [results, setResults] = useState<SimulationResult[] | null>(null);
+  /** Results keyed by algorithm — supports running one or many */
+  const [resultMap, setResultMap] = useState<Partial<Record<Algorithm, SimulationResult>>>({});
   const [scalingData, setScalingData] = useState<{
     waiting: any[];
     turnaround: any[];
@@ -43,35 +50,65 @@ export default function Home() {
     throughput: any[];
   } | null>(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [runningAlgo, setRunningAlgo] = useState<Algorithm | "ALL" | "SCALING" | null>(null);
   const [activeTab, setActiveTab] = useState<"single" | "compare" | "scaling">("single");
+
+  const results = useMemo(
+    () => ALGORITHMS.map((a) => resultMap[a]).filter(Boolean) as SimulationResult[],
+    [resultMap]
+  );
+
+  const hasResults = results.length > 0;
 
   const regenerate = useCallback(() => {
     const newSeed = Date.now() % 100000;
     setSeed(newSeed);
     setProcesses(generateProcesses(processCount, newSeed));
-    setResults(null);
+    setResultMap({});
   }, [processCount]);
 
   const handleCountChange = (count: number) => {
     setProcessCount(count);
     setProcesses(generateProcesses(count, seed));
-    setResults(null);
+    setResultMap({});
   };
 
-  const runSimulation = () => {
+  /** Run a single algorithm and merge into resultMap (keeps other algorithms if already run). */
+  const runOne = (algorithm: Algorithm) => {
     setIsRunning(true);
+    setRunningAlgo(algorithm);
     setTimeout(() => {
-      const fcfs = runAlgorithm("FCFS", processes);
-      const srtf = runAlgorithm("SRTF", processes);
-      const rr = runAlgorithm("RR", processes, timeQuantum);
-      setResults([fcfs, srtf, rr]);
+      const result = runAlgorithm(algorithm, processes, timeQuantum);
+      setResultMap((prev) => ({ ...prev, [algorithm]: result }));
       setIsRunning(false);
+      setRunningAlgo(null);
+      setActiveTab("single");
+    }, 30);
+  };
+
+  /** Run FCFS, SRTF and RR on the current workload and replace all results. */
+  const runAll = () => {
+    setIsRunning(true);
+    setRunningAlgo("ALL");
+    setTimeout(() => {
+      const next: Partial<Record<Algorithm, SimulationResult>> = {};
+      for (const algo of ALGORITHMS) {
+        next[algo] = runAlgorithm(algo, processes, timeQuantum);
+      }
+      setResultMap(next);
+      setIsRunning(false);
+      setRunningAlgo(null);
       setActiveTab("compare");
     }, 50);
   };
 
+  const clearResults = () => {
+    setResultMap({});
+  };
+
   const runScaling = () => {
     setIsRunning(true);
+    setRunningAlgo("SCALING");
     setTimeout(() => {
       const waiting: any[] = [];
       const turnaround: any[] = [];
@@ -81,8 +118,8 @@ export default function Home() {
 
       for (const count of PROCESS_COUNTS) {
         const procs = generateProcesses(count, seed + count);
-        const fcfs = runAlgorithm("FCFS", procs);
-        const srtf = runAlgorithm("SRTF", procs);
+        const fcfs = runAlgorithm("FCFS", procs, timeQuantum);
+        const srtf = runAlgorithm("SRTF", procs, timeQuantum);
         const rr = runAlgorithm("RR", procs, timeQuantum);
 
         waiting.push({
@@ -119,14 +156,29 @@ export default function Home() {
 
       setScalingData({ waiting, turnaround, response, cpu, throughput });
       setIsRunning(false);
+      setRunningAlgo(null);
       setActiveTab("scaling");
     }, 50);
   };
 
   const bestWaiting = useMemo(() => {
-    if (!results) return null;
+    if (results.length === 0) return null;
     return results.reduce((best, r) =>
       r.metrics.avgWaitingTime < best.metrics.avgWaitingTime ? r : best
+    ).algorithm;
+  }, [results]);
+
+  const bestTurnaround = useMemo(() => {
+    if (results.length === 0) return null;
+    return results.reduce((best, r) =>
+      r.metrics.avgTurnaroundTime < best.metrics.avgTurnaroundTime ? r : best
+    ).algorithm;
+  }, [results]);
+
+  const bestResponse = useMemo(() => {
+    if (results.length === 0) return null;
+    return results.reduce((best, r) =>
+      r.metrics.avgResponseTime < best.metrics.avgResponseTime ? r : best
     ).algorithm;
   }, [results]);
 
@@ -191,27 +243,67 @@ export default function Home() {
               onClick={regenerate}
               className="flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
             >
-              🔄
-              New Workload
+              🔄 New Workload
             </button>
+          </div>
 
-            <button
-              onClick={runSimulation}
-              disabled={isRunning}
-              className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-blue-700 disabled:opacity-60"
-            >
-              ▶
-              {isRunning ? "Running…" : "Simulate All"}
-            </button>
+          {/* Per-algorithm + run all */}
+          <div className="mt-4 border-t border-zinc-100 pt-4 dark:border-zinc-800">
+            <p className="mb-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              Run algorithms (metrics calculated automatically)
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {ALGORITHMS.map((algo) => {
+                const done = Boolean(resultMap[algo]);
+                const active = runningAlgo === algo;
+                return (
+                  <button
+                    key={algo}
+                    onClick={() => runOne(algo)}
+                    disabled={isRunning}
+                    className={`rounded-lg px-4 py-2 text-sm font-semibold shadow-sm disabled:opacity-60 ${
+                      done
+                        ? "border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200"
+                        : "border border-zinc-300 bg-white text-zinc-800 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100"
+                    }`}
+                  >
+                    {active ? "Running…" : done ? `✓ ${ALGO_LABELS[algo]}` : `▶ ${ALGO_LABELS[algo]}`}
+                  </button>
+                );
+              })}
 
-            <button
-              onClick={runScaling}
-              disabled={isRunning}
-              className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-700 disabled:opacity-60"
-            >
-              📊
-              Scaling Study (10→50)
-            </button>
+              <button
+                onClick={runAll}
+                disabled={isRunning}
+                className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-blue-700 disabled:opacity-60"
+              >
+                {runningAlgo === "ALL" ? "Running…" : "▶ Simulate All"}
+              </button>
+
+              {hasResults && (
+                <button
+                  onClick={clearResults}
+                  disabled={isRunning}
+                  className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                >
+                  Clear results
+                </button>
+              )}
+
+              <button
+                onClick={runScaling}
+                disabled={isRunning}
+                className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-700 disabled:opacity-60"
+              >
+                {runningAlgo === "SCALING" ? "Running…" : "📊 Scaling Study (10→50)"}
+              </button>
+            </div>
+            {hasResults && (
+              <p className="mt-2 text-xs text-zinc-500">
+                Completed: {results.map((r) => r.algorithm).join(", ")}
+                {results.length < 3 && " — run the remaining algorithms or Simulate All to compare."}
+              </p>
+            )}
           </div>
         </section>
 
@@ -222,44 +314,69 @@ export default function Home() {
           <ProcessTable processes={processes} />
         </section>
 
-        {results && (
+        {(hasResults || scalingData) && (
           <div className="mb-4 flex gap-2 border-b border-zinc-200 dark:border-zinc-700">
-            {(["single", "compare", "scaling"] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 text-sm font-medium capitalize transition ${
-                  activeTab === tab
-                    ? "border-b-2 border-blue-600 text-blue-600"
-                    : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
-                }`}
-              >
-                {tab === "single"
-                  ? "Gantt Charts"
-                  : tab === "compare"
-                  ? "Metrics Comparison"
-                  : "Scaling Analysis"}
-              </button>
-            ))}
+            {(["single", "compare", "scaling"] as const).map((tab) => {
+              const disabled =
+                (tab === "single" || tab === "compare") && !hasResults
+                  ? true
+                  : tab === "scaling" && !scalingData;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => !disabled && setActiveTab(tab)}
+                  disabled={disabled}
+                  className={`px-4 py-2 text-sm font-medium capitalize transition ${
+                    activeTab === tab
+                      ? "border-b-2 border-blue-600 text-blue-600"
+                      : disabled
+                      ? "cursor-not-allowed text-zinc-300 dark:text-zinc-600"
+                      : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                  }`}
+                >
+                  {tab === "single"
+                    ? "Gantt Charts"
+                    : tab === "compare"
+                    ? "Metrics Comparison"
+                    : "Scaling Analysis"}
+                </button>
+              );
+            })}
           </div>
         )}
 
-        {results && activeTab === "single" && (
+        {hasResults && activeTab === "single" && (
           <div className="space-y-6">
             {results.map((r) => (
               <div key={r.algorithm} className="space-y-3">
                 <CpuSchedulerView result={r} />
-                <GanttChart gantt={r.gantt} processes={r.processes} title={`${r.algorithm} Gantt Chart`} />
-                <ExecutionTrace gantt={r.gantt} processes={r.processes} algorithm={r.algorithm} />
+                <GanttChart
+                  gantt={r.gantt}
+                  processes={r.processes}
+                  title={`${r.algorithm} Gantt Chart`}
+                />
+                <ExecutionTrace
+                  gantt={r.gantt}
+                  processes={r.processes}
+                  algorithm={r.algorithm}
+                />
                 <ProcessTable processes={r.processes} showResults />
               </div>
             ))}
           </div>
         )}
 
-        {results && activeTab === "compare" && (
+        {hasResults && activeTab === "compare" && (
           <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-3">
+            <div
+              className={`grid gap-4 ${
+                results.length === 1
+                  ? "md:grid-cols-1 max-w-md"
+                  : results.length === 2
+                  ? "md:grid-cols-2"
+                  : "md:grid-cols-3"
+              }`}
+            >
               {results.map((r) => (
                 <MetricsCard
                   key={r.algorithm}
@@ -269,39 +386,62 @@ export default function Home() {
               ))}
             </div>
 
-            {bestWaiting && (
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
-                <strong>Best average waiting time:</strong> {bestWaiting}
+            {results.length >= 2 && (
+              <div className="space-y-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">
+                {bestWaiting && (
+                  <p>
+                    <strong>Best average waiting time:</strong> {bestWaiting}
+                  </p>
+                )}
+                {bestTurnaround && (
+                  <p>
+                    <strong>Best average turnaround time:</strong> {bestTurnaround}
+                  </p>
+                )}
+                {bestResponse && (
+                  <p>
+                    <strong>Best average response time:</strong> {bestResponse}
+                  </p>
+                )}
               </div>
             )}
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <ComparisonChart
-                results={results}
-                metric="avgWaitingTime"
-                title="Average Waiting Time"
-              />
-              <ComparisonChart
-                results={results}
-                metric="avgTurnaroundTime"
-                title="Average Turnaround Time"
-              />
-              <ComparisonChart
-                results={results}
-                metric="avgResponseTime"
-                title="Average Response Time"
-              />
-              <ComparisonChart
-                results={results}
-                metric="cpuUtilization"
-                title="CPU Utilization (%)"
-              />
-              <ComparisonChart
-                results={results}
-                metric="throughput"
-                title="Throughput (proc / time unit)"
-              />
-            </div>
+            {results.length >= 2 && (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <ComparisonChart
+                  results={results}
+                  metric="avgWaitingTime"
+                  title="Average Waiting Time"
+                />
+                <ComparisonChart
+                  results={results}
+                  metric="avgTurnaroundTime"
+                  title="Average Turnaround Time"
+                />
+                <ComparisonChart
+                  results={results}
+                  metric="avgResponseTime"
+                  title="Average Response Time"
+                />
+                <ComparisonChart
+                  results={results}
+                  metric="cpuUtilization"
+                  title="CPU Utilization (%)"
+                />
+                <ComparisonChart
+                  results={results}
+                  metric="throughput"
+                  title="Throughput (proc / time unit)"
+                />
+              </div>
+            )}
+
+            {results.length === 1 && (
+              <p className="text-sm text-zinc-500">
+                Run at least one more algorithm (or Simulate All) to see side-by-side
+                comparison charts.
+              </p>
+            )}
           </div>
         )}
 
@@ -309,7 +449,8 @@ export default function Home() {
           <div className="space-y-6">
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               Results for process counts 10 → 50 using the same generation seed offset.
-              Answers the investigative questions about behaviour as the number of processes increases.
+              Answers the investigative questions about behaviour as the number of processes
+              increases.
             </p>
             <div className="grid gap-6 lg:grid-cols-2">
               <ScalingChart
