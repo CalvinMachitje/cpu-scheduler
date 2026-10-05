@@ -17,9 +17,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CPU Scheduling Simulator | Audio-Video System",
+  title: "CPU Scheduling Simulator | OS Group Project",
   description:
-    "Simulate and compare FCFS, SRTF and Round Robin for an audio-and-video system with multiple processes. Operating Systems.",
+    "Simulate and compare FCFS, SRTF and Round Robin for an audio-and-video system with multiple processes.",
+  icons: {
+    icon: "/logo.jpg",
+    apple: "/logo.jpg",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

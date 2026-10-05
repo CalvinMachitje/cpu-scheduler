@@ -1,5 +1,5 @@
 /**
- * Main simulator page (CMPG324 audio-and-video multi-process scheduling).
+ * Main simulator page (audio-and-video multi-process scheduling).
  *
  * Flow for collaborators:
  * 1) generateProcesses → workload table
@@ -187,20 +187,24 @@ export default function Home() {
       <header className="border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/80">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600 text-white">
-              ⚙️
-            </div>
+            <img
+              src="/logo.jpg"
+              alt="OS Group Project logo"
+              className="h-12 w-12 rounded-full object-cover shadow-md ring-2 ring-blue-100 dark:ring-blue-900"
+            />
             <div>
               <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
                 CPU Scheduling Simulator
               </h1>
               <p className="text-xs text-zinc-500">
-                Audio-and-video multi-process system · FCFS · SRTF · Round Robin
+                OS Group Project · Audio-and-video multi-process system
               </p>
             </div>
           </div>
-          <div className="hidden text-right text-xs text-zinc-500 sm:block">
-            · Operating Systems
+          <div className="hidden items-center gap-3 sm:flex">
+            <div className="text-right text-xs text-zinc-500">
+              <div>Operating Systems</div>
+            </div>
           </div>
         </div>
       </header>
